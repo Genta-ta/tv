@@ -12,31 +12,21 @@ jobs:
         include:
           - arch: aarch64
             cc: aarch64-linux-gnu-gcc
-            cxx: aarch64-linux-gnu-g++
             rust_target: aarch64-unknown-linux-musl
             pkg: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-            cmake_arch: aarch64
+            llama_arch: arm64
 
           - arch: armv7
             cc: arm-linux-gnueabihf-gcc
-            cxx: arm-linux-gnueabihf-g++
             rust_target: armv7-unknown-linux-musleabihf
             pkg: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-            cmake_arch: armv7
+            llama_arch: armv7l
 
           - arch: x86_64
             cc: gcc
-            cxx: g++
             rust_target: x86_64-unknown-linux-musl
             pkg: musl-tools
-            cmake_arch: x86_64
-
-          - arch: riscv64
-            cc: riscv64-linux-gnu-gcc
-            cxx: riscv64-linux-gnu-g++
-            rust_target: riscv64gc-unknown-linux-gnu
-            pkg: gcc-riscv64-linux-gnu g++-riscv64-linux-gnu
-            cmake_arch: riscv64
+            llama_arch: x64
 
     steps:
     - uses: actions/checkout@v4
@@ -50,35 +40,48 @@ jobs:
     - name: Install toolchain
       run: |
         sudo apt update -qq
-        sudo apt install -y \
-          ${{ matrix.pkg }} \
-          musl-tools cmake ninja-build
+        sudo apt install -y ${{ matrix.pkg }} musl-tools
 
-    - name: Cache llama.cpp build
-      uses: actions/cache@v4
-      with:
-        path: llama.cpp/build
-        key: llama-${{ matrix.arch }}-${{ hashFiles('llama.cpp/**') }}
-        restore-keys: llama-${{ matrix.arch }}-
-
-    - name: Clone llama.cpp
+    - name: Download llama.cpp pre-built
       run: |
-        [ -d llama.cpp ] || \
-          git clone --depth=1 https://github.com/ggerganov/llama.cpp
+        mkdir -p bin
 
-    - name: Build llama.cpp
-      run: |
-        cd llama.cpp
-        cmake -B build \
-          -DCMAKE_C_COMPILER=${{ matrix.cc }} \
-          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DLLAMA_NATIVE=OFF \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DLLAMA_BUILD_TESTS=OFF \
-          -DLLAMA_BUILD_EXAMPLES=ON
-        cmake --build build --config Release \
-          --target llama-cli -j$(nproc)
+        # Ambil versi release terbaru
+        LLAMA_VER=$(curl -s \
+          https://api.github.com/repos/ggerganov/llama.cpp/releases/latest \
+          | grep tag_name | cut -d'"' -f4)
+        echo "llama.cpp version: $LLAMA_VER"
+
+        # Map arch ke nama file release llama.cpp
+        case "${{ matrix.arch }}" in
+          aarch64)
+            FILE="llama-${LLAMA_VER}-bin-ubuntu-arm64.zip" ;;
+          armv7)
+            FILE="llama-${LLAMA_VER}-bin-ubuntu-armhf.zip" ;;
+          x86_64)
+            FILE="llama-${LLAMA_VER}-bin-ubuntu-x64.zip" ;;
+        esac
+
+        URL="https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_VER}/${FILE}"
+        echo "Downloading: $URL"
+
+        curl -fsSL "$URL" -o llama.zip || {
+          echo "File tidak ada, coba format lain..."
+          # Fallback format lama
+          case "${{ matrix.arch }}" in
+            aarch64) FILE="llama-${LLAMA_VER}-bin-linux-arm64.zip" ;;
+            armv7)   FILE="llama-${LLAMA_VER}-bin-linux-armhf.zip" ;;
+            x86_64)  FILE="llama-${LLAMA_VER}-bin-linux-x64.zip"   ;;
+          esac
+          URL="https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_VER}/${FILE}"
+          curl -fsSL "$URL" -o llama.zip
+        }
+
+        # Extract llama-cli saja
+        unzip -jo llama.zip "*/llama-cli" -d bin/ || \
+        unzip -jo llama.zip "*/main" -d bin/ && mv bin/main bin/llama-cli
+        chmod +x bin/llama-cli
+        file bin/llama-cli
 
     - name: Cache Rust
       uses: actions/cache@v4
@@ -106,7 +109,6 @@ jobs:
 
     - name: Build C server
       run: |
-        mkdir -p bin
         ${{ matrix.cc }} -O3 -static \
           -o bin/ai-server src/server/main.c \
           -lpthread
@@ -116,41 +118,14 @@ jobs:
         cargo build --release --target ${{ matrix.rust_target }}
         cp target/${{ matrix.rust_target }}/release/search bin/search
 
-    - name: Collect binaries
+    - name: Verify semua binary
       run: |
-        cp llama.cpp/build/bin/llama-cli bin/llama-cli
         ls -lh bin/
         file bin/*
 
-    - name: Upload binaries
+    - name: Upload
       uses: actions/upload-artifact@v4
       with:
         name: ai-${{ matrix.arch }}-binaries
         path: bin/
         retention-days: 7
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-    - uses: actions/download-artifact@v4
-      with:
-        path: release/
-
-    - name: Rename per arch
-      run: |
-        for arch in aarch64 armv7 x86_64 riscv64; do
-          dir="release/ai-${arch}-binaries"
-          [ -d "$dir" ] || continue
-          for bin in ai-server search llama-cli; do
-            [ -f "$dir/$bin" ] && \
-              mv "$dir/$bin" "release/${bin}-${arch}"
-          done
-        done
-        ls -lh release/
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: release/*-*

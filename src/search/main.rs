@@ -1,58 +1,41 @@
-use std::io::{Read, Write};
-use std::net::TcpStream;
-
-fn url_encode(s: &str) -> String {
-    s.chars().map(|c| match c {
-        'a'..='z'|'A'..='Z'|'0'..='9' => c.to_string(),
-        ' ' => "+".into(),
-        _   => format!("%{:02X}", c as u8),
-    }).collect()
-}
-
-fn http_get(host: &str, port: u16, path: &str) -> Option<String> {
-    let mut s = TcpStream::connect((host, port)).ok()?;
-    write!(s, "GET {} HTTP/1.0\r\nHost: {}\r\nConnection: close\r\n\r\n",
-           path, host).ok()?;
-    let mut buf = String::new();
-    s.read_to_string(&mut buf).ok()?;
-    buf.find("\r\n\r\n").map(|i| buf[i+4..].to_string())
-}
-
-fn json_str<'a>(json: &'a str, key: &str) -> Vec<&'a str> {
-    let needle = format!("\"{}\":\"", key);
-    let mut out = Vec::new();
-    let mut pos = 0;
-    while let Some(i) = json[pos..].find(&needle) {
-        let start = pos + i + needle.len();
-        if let Some(end) = json[start..].find('"') {
-            out.push(&json[start..start+end]);
-            pos = start + end;
-        } else { break; }
-        if out.len() >= 3 { break; }
-    }
-    out
-}
-
-fn search(query: &str) -> String {
-    let path = format!("/search?q={}&format=json", url_encode(query));
-    match http_get("localhost", 8080, &path) {
-        Some(body) => {
-            let titles   = json_str(&body, "title");
-            let contents = json_str(&body, "content");
-            titles.iter().zip(contents.iter())
-                .map(|(t, c)| format!("[{}] {}", t, c))
-                .collect::<Vec<_>>()
-                .join("\n")
-        }
-        None => "no results".into(),
-    }
-}
+use reqwest;
+use scraper::{Html, Selector};
+use std::env;
 
 fn main() {
-    let q: Vec<String> = std::env::args().skip(1).collect();
-    if q.is_empty() {
-        eprintln!("usage: search <query>");
-        std::process::exit(1);
+    // Ambil query dari argumen command line
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        eprintln!("Usage: search <query>");
+        return;
     }
-    println!("{}", search(&q.join(" ")));
+    let query = &args[1];
+
+    match search_duckduckgo(query) {
+        Ok(results) => println!("{}", results),
+        Err(e) => eprintln!("Error searching: {}", e),
+    }
+}
+
+fn search_duckduckgo(query: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let url = format!("https://html.duckduckgo.com/html/?q={}", query);
+    
+    // Setup client dengan User-Agent agar tidak diblokir
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("Mozilla/5.0")
+        .build()?;
+
+    let html = client.get(url).send()?.text()?;
+    let document = Html::parse_document(&html);
+    
+    // Selector untuk cuplikan hasil pencarian di DuckDuckGo HTML
+    let selector = Selector::parse(".result__snippet").unwrap();
+    
+    let mut context = String::new();
+    for element in document.select(&selector).take(3) { // Ambil 3 hasil teratas
+        context.push_str(&element.text().collect::<Vec<_>>().join(" "));
+        context.push_str("\n");
+    }
+
+    Ok(context)
 }

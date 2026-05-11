@@ -14,19 +14,19 @@ jobs:
             cc: aarch64-linux-gnu-gcc
             rust_target: aarch64-unknown-linux-musl
             pkg: gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-            llama_arch: arm64
+            llama_file: llama-b9101-bin-ubuntu-arm64.zip
 
           - arch: armv7
             cc: arm-linux-gnueabihf-gcc
             rust_target: armv7-unknown-linux-musleabihf
             pkg: gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-            llama_arch: armv7l
+            llama_file: llama-b9101-bin-ubuntu-armhf.zip
 
           - arch: x86_64
             cc: gcc
             rust_target: x86_64-unknown-linux-musl
             pkg: musl-tools
-            llama_arch: x64
+            llama_file: llama-b9101-bin-ubuntu-x64.zip
 
     steps:
     - uses: actions/checkout@v4
@@ -40,47 +40,35 @@ jobs:
     - name: Install toolchain
       run: |
         sudo apt update -qq
-        sudo apt install -y ${{ matrix.pkg }} musl-tools
+        sudo apt install -y ${{ matrix.pkg }} musl-tools unzip
 
-    - name: Download llama.cpp pre-built
+    - name: Cache llama binary
+      uses: actions/cache@v4
+      with:
+        path: llama-bin/
+        key: llama-b9101-${{ matrix.arch }}
+
+    - name: Download llama.cpp b9101
       run: |
-        mkdir -p bin
+        mkdir -p bin llama-bin
 
-        # Ambil versi release terbaru
-        LLAMA_VER=$(curl -s \
-          https://api.github.com/repos/ggerganov/llama.cpp/releases/latest \
-          | grep tag_name | cut -d'"' -f4)
-        echo "llama.cpp version: $LLAMA_VER"
-
-        # Map arch ke nama file release llama.cpp
-        case "${{ matrix.arch }}" in
-          aarch64)
-            FILE="llama-${LLAMA_VER}-bin-ubuntu-arm64.zip" ;;
-          armv7)
-            FILE="llama-${LLAMA_VER}-bin-ubuntu-armhf.zip" ;;
-          x86_64)
-            FILE="llama-${LLAMA_VER}-bin-ubuntu-x64.zip" ;;
-        esac
-
-        URL="https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_VER}/${FILE}"
-        echo "Downloading: $URL"
-
-        curl -fsSL "$URL" -o llama.zip || {
-          echo "File tidak ada, coba format lain..."
-          # Fallback format lama
-          case "${{ matrix.arch }}" in
-            aarch64) FILE="llama-${LLAMA_VER}-bin-linux-arm64.zip" ;;
-            armv7)   FILE="llama-${LLAMA_VER}-bin-linux-armhf.zip" ;;
-            x86_64)  FILE="llama-${LLAMA_VER}-bin-linux-x64.zip"   ;;
-          esac
-          URL="https://github.com/ggerganov/llama.cpp/releases/download/${LLAMA_VER}/${FILE}"
+        if [ -f "llama-bin/llama-cli" ]; then
+          echo "Cache hit — skip download"
+          cp llama-bin/llama-cli bin/llama-cli
+        else
+          URL="https://github.com/ggml-org/llama.cpp/releases/download/b9101/${{ matrix.llama_file }}"
+          echo "Download: $URL"
           curl -fsSL "$URL" -o llama.zip
-        }
 
-        # Extract llama-cli saja
-        unzip -jo llama.zip "*/llama-cli" -d bin/ || \
-        unzip -jo llama.zip "*/main" -d bin/ && mv bin/main bin/llama-cli
-        chmod +x bin/llama-cli
+          # Extract
+          unzip -jo llama.zip "*/llama-cli" -d bin/ 2>/dev/null || \
+          unzip -jo llama.zip "*/main"      -d bin/ 2>/dev/null && \
+            mv bin/main bin/llama-cli 2>/dev/null || true
+
+          chmod +x bin/llama-cli
+          cp bin/llama-cli llama-bin/llama-cli
+        fi
+
         file bin/llama-cli
 
     - name: Cache Rust
@@ -118,7 +106,7 @@ jobs:
         cargo build --release --target ${{ matrix.rust_target }}
         cp target/${{ matrix.rust_target }}/release/search bin/search
 
-    - name: Verify semua binary
+    - name: Verify
       run: |
         ls -lh bin/
         file bin/*

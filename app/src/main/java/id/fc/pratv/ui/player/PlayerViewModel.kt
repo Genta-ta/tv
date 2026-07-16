@@ -103,14 +103,15 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             Log.d(TAG, "prepare: ${channel.name} url=${channel.url} drm=${channel.drmType} headers=$headers")
             AppLogger.d(TAG, "prepare ${channel.name} | ${channel.url} | drm=${channel.drmType}")
 
-            val exoPlayer = ExoPlayer.Builder(context)
+            val exoPlayer = _player.value ?: ExoPlayer.Builder(context)
                 .setMediaSourceFactory(mediaSourceFactory)
                 .build()
-                .apply {
-                    setMediaItem(mediaItem)
-                    prepare()
-                    playWhenReady = true
-                    addListener(object : Player.Listener {
+                .also { _player.value = it }
+            exoPlayer.apply {
+                setMediaItem(mediaItem)
+                prepare()
+                playWhenReady = true
+                addListener(object : Player.Listener {
                         override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                             val msg = error.message ?: "Gagal memutar channel"
                             _error.value = msg
@@ -163,8 +164,6 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                     })
                 }
 
-            _player.value?.release()
-            _player.value = exoPlayer
         } catch (e: Exception) {
             val msg = e.message ?: "Gagal memutar channel"
             _error.value = msg

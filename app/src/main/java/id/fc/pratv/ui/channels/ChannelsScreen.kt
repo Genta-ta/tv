@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
@@ -253,7 +253,7 @@ private fun ChannelList(
                     modifier = Modifier.padding(vertical = r.spacingMedium)
                 )
             }
-            items(items = items, key = { it.url }) { ch ->
+            itemsIndexed(items = items, key = { index, ch -> "$group#$index" }) { _, ch ->
                 ChannelItem(
                     channel = ch,
                     onActivate = { onActivate(ch) },
@@ -276,8 +276,9 @@ private fun PlayerPreview(
     var previewedUrl by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(channel) {
-        val url = channel?.url
-        if (url != null && url != previewedUrl) {
+        val url = channel?.url ?: return@LaunchedEffect
+        kotlinx.coroutines.delay(400)
+        if (url != previewedUrl) {
             previewedUrl = url
             playerViewModel.prepare(channel)
         }

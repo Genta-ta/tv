@@ -1,0 +1,18 @@
+<resources>
+    <dimen name="text_logo">120sp</dimen>
+    <dimen name="text_byline">30sp</dimen>
+    <dimen name="text_title">96sp</dimen>
+    <dimen name="text_subtitle">48sp</dimen>
+    <dimen name="text_button">40sp</dimen>
+
+    <dimen name="spacing_small">18dp</dimen>
+    <dimen name="spacing_medium">36dp</dimen>
+    <dimen name="spacing_large">72dp</dimen>
+
+    <dimen name="overscan_horizontal">96dp</dimen>
+    <dimen name="overscan_vertical">96dp</dimen>
+
+    <dimen name="category_text">32sp</dimen>
+    <dimen name="channel_name_text">60sp</dimen>
+    <dimen name="channel_item_size">200dp</dimen>
+</resources>

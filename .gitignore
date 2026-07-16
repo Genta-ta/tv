@@ -1,0 +1,25 @@
+# Android build artifacts
+*.apk
+*.aar
+*.ap_
+*.dex
+*.class
+*.lock
+bin/
+gen/
+out/
+android-app/**/build/
+android-app/.gradle/
+.gradle/
+local.properties
+captures/
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Misc
+text.txt
+.DS_Store

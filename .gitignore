@@ -8,8 +8,7 @@
 bin/
 gen/
 out/
-android-app/**/build/
-android-app/.gradle/
+**/build/
 .gradle/
 local.properties
 captures/

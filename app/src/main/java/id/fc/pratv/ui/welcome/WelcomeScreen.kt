@@ -14,6 +14,7 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -126,17 +127,13 @@ fun WelcomeScreen(nav: NavController) {
                 .fillMaxWidth()
                 .padding(horizontal = r.overscanH, vertical = r.spacingLarge)
         ) {
-            Box(
+            LinearProgressIndicator(
+                progress = { progress.coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(4.dp)
-                    .background(VSCodeColors.border)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(progress.coerceIn(0f, 1f))
-                    .height(4.dp)
-                    .background(MaterialTheme.colorScheme.primary)
+                    .height(4.dp),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = VSCodeColors.border
             )
         }
     }

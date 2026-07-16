@@ -73,14 +73,29 @@ object PlaylistRepository {
                     val buf = CharArray(8192)
                     var read: Int
                     var soFar = 0L
+                    var lastEmit = -1f
+                    var nextEmitBytes = 0L
                     while (reader.read(buf).also { read = it } != -1) {
                         sb.append(buf, 0, read)
                         soFar += read
-                        if (total > 0) onProgress((soFar.toFloat() / total).coerceIn(0f, 1f))
-                        else onProgress(0.5f)
+                        val frac = if (total > 0) {
+                            (soFar.toFloat() / total).coerceIn(0f, 0.99f)
+                        } else {
+                            // ukuran tak diketahui (chunked/gzip tanpa Content-Length):
+                            // rayap halus 0 -> ~0.95 berbasis byte + Estimasi membesar
+                            val est = (soFar * 2L).coerceAtLeast(1L)
+                            (soFar.toFloat() / est).coerceIn(0f, 0.95f)
+                        }
+                        // coalesce: hanya emit bila delta >= 1% ATAU tiap ~64KB agar tak spam StateFlow
+                        val delta = if (lastEmit < 0f) 1f else kotlin.math.abs(frac - lastEmit)
+                        if (delta >= 0.01f || soFar >= nextEmitBytes) {
+                            onProgress(frac)
+                            lastEmit = frac
+                            nextEmitBytes = soFar + 65536L
+                        }
                     }
                 }
-                if (total <= 0) onProgress(1f)
+                onProgress(1f)
                 sb.toString()
             } catch (e: Exception) {
                 AppLogger.e("Fetch", "GET $url failed: ${e.message}")

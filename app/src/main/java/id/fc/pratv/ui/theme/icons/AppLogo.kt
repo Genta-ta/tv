@@ -12,8 +12,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 private val PRATV_LOGO_PATH =
-    "M4 3h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z " +
-    "M7 8.5l6 3.5-6 3.5z"
+    "M3 2h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z " +
+    "M4.5 4h13a.5.5 0 0 1.5.5v5a.5.5 0 0 1-.5.5H4.5a.5.5 0 0 1-.5-.5V4.5a.5.5 0 0 1.5-.5z " +
+    "M9 5.5l5 2.8-5 2.8z " +
+    "M9.5 13h5v1h-5zM10.5 14h3v1h-3z"
 
 val PratvLogo: ImageVector by lazy {
     ImageVector.Builder(

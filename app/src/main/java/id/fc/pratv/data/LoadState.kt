@@ -38,29 +38,34 @@ object LoadState {
                 if (started) false else { started = true; true }
             }
             if (!shouldRun) return@launch
-            try {
-                _isLoading.value = true
-                _error.value = null
-                _progress.value = 0f
-                val result = withTimeoutOrNull(30000L) {
-                    try {
-                        _progress.value = 0.1f
-                        val channels = PlaylistRepository.getChannels(app, force = false)
-                        _progress.value = 0.6f
-                        _logos.value = channels.mapNotNull { it.logoUrl }.distinct().take(40)
-                        _progress.value = 1f
-                        true
-                    } catch (e: Exception) {
-                        AppLogger.e("Splash", "load failed: ${e.message}")
-                        _error.value = e.message ?: "Gagal memuat playlist"
-                        false
+                try {
+                    _isLoading.value = true
+                    _error.value = null
+                    _progress.value = 0f
+                    val result = withTimeoutOrNull(45000L) {
+                        try {
+                            _progress.value = 0.05f
+                            val channels = PlaylistRepository.getChannels(app, force = false) { p ->
+                                _progress.value = 0.05f + 0.6f * p
+                            }
+                            _progress.value = 0.65f
+                            _logos.value = channels.mapNotNull { it.logoUrl }.distinct().take(40)
+                            PlaylistRepository.getEpg(app) { p ->
+                                _progress.value = 0.65f + 0.3f * p
+                            }
+                            _progress.value = 1f
+                            true
+                        } catch (e: Exception) {
+                            AppLogger.e("Splash", "load failed: ${e.message}")
+                            _error.value = e.message ?: "Gagal memuat playlist"
+                            false
+                        }
                     }
-                }
-                if (result == null && _error.value == null) {
-                    _error.value = "Waktu muat habis (30 dtk)"
-                }
-                _isLoading.value = false
-            } finally {
+                    if (result == null && _error.value == null) {
+                        _error.value = "Waktu muat habis (45 dtk)"
+                    }
+                    _isLoading.value = false
+                } finally {
                 mutex.withLock { started = false }
             }
         }

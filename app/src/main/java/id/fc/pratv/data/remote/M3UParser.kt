@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 object M3UParser {
 
-    fun parse(text: String): List<Channel> {
+    fun parse(text: String, onProgress: (Float) -> Unit = {}): List<Channel> {
         val channels = mutableListOf<Channel>()
         var pendingName: String? = null
         var pendingId: String? = null
@@ -29,9 +29,15 @@ object M3UParser {
             drmLicenseUri = null
         }
 
+        val totalLines = text.lineSequence().count()
+        var lineNo = 0
         for (raw in text.lineSequence()) {
             val line = raw.trim()
             if (line.isEmpty()) continue
+            lineNo++
+            if (totalLines > 0 && lineNo % 500 == 0) {
+                onProgress((lineNo.toFloat() / totalLines).coerceIn(0f, 1f))
+            }
 
             when {
                 line.startsWith("#EXTINF") -> {
@@ -124,6 +130,7 @@ object M3UParser {
                 }
             }
         }
+        onProgress(1f)
         return channels
     }
 

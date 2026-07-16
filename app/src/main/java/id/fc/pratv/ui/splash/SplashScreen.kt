@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import id.fc.pratv.ui.theme.Responsive
 import id.fc.pratv.ui.theme.VSCodeColors
 import id.fc.pratv.ui.theme.rememberResponsive
@@ -46,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import id.fc.pratv.data.LoadState
+import id.fc.pratv.ui.theme.Icons.AppLogo
+import id.fc.pratv.ui.theme.Icons.PratvLogo
 import kotlinx.coroutines.delay
 
 @Composable
@@ -100,6 +104,16 @@ fun SplashScreen(
                 .padding(horizontal = r.overscanH),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Image(
+                imageVector = PratvLogo,
+                contentDescription = "pranemanTV",
+                modifier = Modifier
+                    .size(r.textLogo.value.dp * 4f)
+                    .alpha(logoAlpha)
+                    .scale(logoScale),
+                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(Modifier.height(r.spacingMedium))
             Text(
                 text = "pranemanTV",
                 color = MaterialTheme.colorScheme.primary,
@@ -168,7 +182,7 @@ private fun ChannelCarousel(
 
     LaunchedEffect(Unit) {
         while (true) {
-            delay(1500)
+            delay(1500L)
             val next = (pagerState.currentPage + 1) % pageCount
             pagerState.animateScrollToPage(next)
         }

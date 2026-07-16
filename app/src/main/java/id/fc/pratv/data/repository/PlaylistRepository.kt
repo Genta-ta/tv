@@ -22,18 +22,26 @@ object PlaylistRepository {
     private var cache: List<Channel>? = null
     private var epgCache: Map<String, List<EpgParser.Programme>>? = null
 
-    suspend fun getChannels(context: Context, force: Boolean = false): List<Channel> {
+    suspend fun getChannels(
+        context: Context,
+        force: Boolean = false,
+        onProgress: (Float) -> Unit = {}
+    ): List<Channel> {
         if (!force && cache != null) return cache!!
         val url = SettingsStore.getActiveUrl(context)
         AppLogger.i("Playlist", "getChannels force=$force url=$url")
-        val text = fetchText(url)
+        val text = fetchText(url, onProgress)
         val parsed = M3UParser.parse(text)
         AppLogger.i("Playlist", "parsed ${parsed.size} channels")
         cache = parsed
         return parsed
     }
 
-    suspend fun getEpg(context: Context, force: Boolean = false): Map<String, List<EpgParser.Programme>> {
+    suspend fun getEpg(
+        context: Context,
+        force: Boolean = false,
+        onProgress: (Float) -> Unit = {}
+    ): Map<String, List<EpgParser.Programme>> {
         if (!force && epgCache != null) return epgCache!!
         val url = SettingsStore.getActiveUrl(context)
         AppLogger.i("Epg", "getEpg force=$force url=$url")
@@ -43,27 +51,42 @@ object PlaylistRepository {
             return emptyMap()
         }
         AppLogger.i("Epg", "epg url=$epgUrl")
-        val epgText = fetchText(epgUrl)
+        val epgText = fetchText(epgUrl, onProgress)
         val parsed = EpgParser.parse(epgText)
         AppLogger.i("Epg", "parsed ${parsed.size} channels / ${parsed.values.sumOf { it.size }} programmes")
         epgCache = parsed
         return parsed
     }
 
-    private suspend fun fetchText(url: String): String = withContext(Dispatchers.IO) {
-        AppLogger.d("Fetch", "GET $url")
-        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-            connectTimeout = 15000
-            readTimeout = 15000
-            setRequestProperty("User-Agent", "Mozilla/5.0")
+    private suspend fun fetchText(url: String, onProgress: (Float) -> Unit = {}): String =
+        withContext(Dispatchers.IO) {
+            AppLogger.d("Fetch", "GET $url")
+            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 15000
+                readTimeout = 15000
+                setRequestProperty("User-Agent", "Mozilla/5.0")
+            }
+            try {
+                val total = conn.contentLengthLong.coerceAtLeast(0L)
+                val sb = StringBuilder()
+                conn.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                    val buf = CharArray(8192)
+                    var read: Int
+                    var soFar = 0L
+                    while (reader.read(buf).also { read = it } != -1) {
+                        sb.append(buf, 0, read)
+                        soFar += read
+                        if (total > 0) onProgress((soFar.toFloat() / total).coerceIn(0f, 1f))
+                        else onProgress(0.5f)
+                    }
+                }
+                if (total <= 0) onProgress(1f)
+                sb.toString()
+            } catch (e: Exception) {
+                AppLogger.e("Fetch", "GET $url failed: ${e.message}")
+                throw e
+            }
         }
-        try {
-            conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-        } catch (e: Exception) {
-            AppLogger.e("Fetch", "GET $url failed: ${e.message}")
-            throw e
-        }
-    }
 
     fun clearCache() {
         cache = null

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,7 +51,15 @@ import id.fc.pratv.ui.channels.ChannelsViewModel
 import id.fc.pratv.ui.theme.VSCodeColors
 import id.fc.pratv.ui.theme.ThemeMode
 import id.fc.pratv.ui.theme.rememberResponsive
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import id.fc.pratv.ui.theme.Icons.ArrowRightIcon
+import id.fc.pratv.ui.theme.Icons.ClipboardIcon
+import id.fc.pratv.ui.theme.Icons.CloseIcon
+import id.fc.pratv.ui.theme.Icons.InfoIcon
+import id.fc.pratv.ui.theme.Icons.PaletteIcon
+import id.fc.pratv.ui.theme.Icons.SaveIcon
+import id.fc.pratv.ui.theme.Icons.TvIcon
 import kotlinx.coroutines.delay
 
 @Composable
@@ -99,7 +108,11 @@ fun SettingsScreen(nav: NavController) {
             )
             Spacer(Modifier.height(r.spacingLarge))
 
-            Text("Playlist M3U", color = VSCodeColors.textPrimary, fontSize = r.textSubtitle, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TvIcon(contentDescription = null, tint = VSCodeColors.accent, modifier = Modifier.size(r.textSubtitle.value.dp))
+                Spacer(Modifier.width(r.spacingSmall))
+                Text("Playlist M3U", color = VSCodeColors.textPrimary, fontSize = r.textSubtitle, fontWeight = FontWeight.Bold)
+            }
             Spacer(Modifier.height(r.spacingMedium))
             val presetLabels = mapOf(
                 PlaylistRepository.DEFAULT_URL to "Playlist Utama (lengkap, ada channel V+ ber-DRM)",
@@ -119,6 +132,8 @@ fun SettingsScreen(nav: NavController) {
                         }
                         .padding(vertical = r.spacingSmall)
                 ) {
+                    TvIcon(contentDescription = null, tint = VSCodeColors.textMuted, modifier = Modifier.size((r.textSubtitle.value * 0.9f).dp))
+                    Spacer(Modifier.width(r.spacingSmall))
                     RadioButton(selected = u == activeUrl, onClick = {
                         activeUrl = u
                         SettingsStore.setActiveUrl(context, u)
@@ -167,7 +182,11 @@ fun SettingsScreen(nav: NavController) {
             HorizontalDivider(color = VSCodeColors.border)
             Spacer(Modifier.height(r.spacingLarge))
 
-            Text("Tema", color = VSCodeColors.textPrimary, fontSize = r.textSubtitle, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PaletteIcon(contentDescription = null, tint = VSCodeColors.accent, modifier = Modifier.size(r.textSubtitle.value.dp))
+                Spacer(Modifier.width(r.spacingSmall))
+                Text("Tema", color = VSCodeColors.textPrimary, fontSize = r.textSubtitle, fontWeight = FontWeight.Bold)
+            }
             Spacer(Modifier.height(r.spacingMedium))
             ThemeMode.values().forEach { mode ->
                 Row(
@@ -180,6 +199,8 @@ fun SettingsScreen(nav: NavController) {
                         }
                         .padding(vertical = r.spacingSmall)
                 ) {
+                    PaletteIcon(contentDescription = null, tint = VSCodeColors.textMuted, modifier = Modifier.size((r.textSubtitle.value * 0.9f).dp))
+                    Spacer(Modifier.width(r.spacingSmall))
                     RadioButton(selected = mode.key == themeKey, onClick = {
                         themeKey = mode.key
                         SettingsStore.setTheme(context, mode.key)
@@ -193,6 +214,8 @@ fun SettingsScreen(nav: NavController) {
             Spacer(Modifier.height(r.spacingLarge))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
+                ClipboardIcon(contentDescription = null, tint = VSCodeColors.textMuted, modifier = Modifier.size((r.textSubtitle.value * 0.9f).dp))
+                Spacer(Modifier.width(r.spacingSmall))
                 Text(
                     text = "Tampilkan log",
                     color = MaterialTheme.colorScheme.onBackground,
@@ -209,6 +232,8 @@ fun SettingsScreen(nav: NavController) {
             }
             Spacer(Modifier.width(r.spacingMedium))
             Row(verticalAlignment = Alignment.CenterVertically) {
+                ArrowRightIcon(contentDescription = null, tint = VSCodeColors.textMuted, modifier = Modifier.size((r.textSubtitle.value * 0.9f).dp))
+                Spacer(Modifier.width(r.spacingSmall))
                 Text(
                     text = "Auto-lanjut ke channel lain bila gagal",
                     color = MaterialTheme.colorScheme.onBackground,
@@ -293,12 +318,16 @@ fun SettingsScreen(nav: NavController) {
             HorizontalDivider(color = VSCodeColors.border)
             Spacer(Modifier.height(r.spacingLarge))
 
-            Text(
-                "Tentang pranemanTV",
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = r.textSubtitle,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                InfoIcon(contentDescription = null, tint = VSCodeColors.accent, modifier = Modifier.size(r.textSubtitle.value.dp))
+                Spacer(Modifier.width(r.spacingSmall))
+                Text(
+                    "Tentang pranemanTV",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = r.textSubtitle,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             Spacer(Modifier.height(r.spacingMedium))
             LogRow("Versi", BuildConfig.VERSION_NAME, r)
             LogRow("Dibuat", BuildConfig.BUILD_TIME, r)
@@ -318,10 +347,14 @@ fun SettingsScreen(nav: NavController) {
                         popUpTo("channels") { inclusive = true }
                     }
                 }) {
+                    SaveIcon(contentDescription = null, modifier = Modifier.size((r.textButton.value * 1.1f).dp))
+                    Spacer(Modifier.width(r.spacingSmall))
                     Text("Simpan", fontSize = r.textButton)
                 }
                 Spacer(Modifier.height(r.spacingMedium))
                 Button(onClick = { nav.popBackStack() }) {
+                    CloseIcon(contentDescription = null, modifier = Modifier.size((r.textButton.value * 1.1f).dp))
+                    Spacer(Modifier.width(r.spacingSmall))
                     Text("Batal", fontSize = r.textButton)
                 }
             }

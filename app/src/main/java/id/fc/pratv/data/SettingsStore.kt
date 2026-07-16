@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import id.fc.pratv.data.repository.PlaylistRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 object SettingsStore {
     private const val NAME = "pratv_prefs"
@@ -21,10 +24,16 @@ object SettingsStore {
 
     fun isPreset(url: String): Boolean = url in PRESET_URLS
 
+    private fun prefs(context: Context): SharedPreferences =
+        context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+
+    private val _themeKey = MutableStateFlow("gelap")
+    val themeKeyFlow: StateFlow<String> = _themeKey.asStateFlow()
+
     fun getUrls(context: Context): List<String> {
-        val prefs = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
-        val legacy = prefs.getString(KEY_URL_LEGACY, null)
-        val joined = prefs.getString(KEY_URLS, null)
+        val allPrefs = prefs(context)
+        val legacy = allPrefs.getString(KEY_URL_LEGACY, null)
+        val joined = allPrefs.getString(KEY_URLS, null)
         val custom = if (joined.isNullOrBlank()) {
             emptyList()
         } else {
@@ -32,14 +41,14 @@ object SettingsStore {
         }
         val list = PRESET_URLS + custom + (legacy?.takeIf { it !in PRESET_URLS }?.let { listOf(it) } ?: emptyList())
         if (legacy != null) {
-            prefs.edit { remove(KEY_URL_LEGACY) }
+            allPrefs.edit { remove(KEY_URL_LEGACY) }
         }
         return list.distinct()
     }
 
     fun getActiveUrl(context: Context): String {
-        val prefs = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
-        val active = prefs.getString(KEY_ACTIVE_URL, null)
+        val allPrefs = prefs(context)
+        val active = allPrefs.getString(KEY_ACTIVE_URL, null)
         val urls = getUrls(context)
         return active?.takeIf { it in urls } ?: urls.firstOrNull()
             ?: PlaylistRepository.DEFAULT_URL
@@ -50,7 +59,7 @@ object SettingsStore {
         if (trimmed.isBlank()) return
         val urls = getUrls(context).toMutableList()
         if (trimmed !in urls) urls.add(trimmed)
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit {
+        prefs(context).edit {
             putString(KEY_URLS, urls.joinToString("|"))
         }
     }
@@ -60,7 +69,7 @@ object SettingsStore {
         val urls = getUrls(context).toMutableList()
         urls.remove(url)
         val active = getActiveUrl(context)
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit {
+        prefs(context).edit {
             if (urls.isEmpty()) {
                 putString(KEY_URLS, PlaylistRepository.DEFAULT_URL)
             } else {
@@ -73,29 +82,30 @@ object SettingsStore {
     }
 
     fun setActiveUrl(context: Context, url: String) {
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit {
+        prefs(context).edit {
             putString(KEY_ACTIVE_URL, url)
         }
     }
 
     fun getShowLog(context: Context): Boolean =
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).getBoolean(KEY_SHOW_LOG, false)
+        prefs(context).getBoolean(KEY_SHOW_LOG, false)
 
     fun setShowLog(context: Context, value: Boolean) {
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit { putBoolean(KEY_SHOW_LOG, value) }
+        prefs(context).edit { putBoolean(KEY_SHOW_LOG, value) }
     }
 
     fun getAutoSkip(context: Context): Boolean =
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_SKIP, false)
+        prefs(context).getBoolean(KEY_AUTO_SKIP, false)
 
     fun setAutoSkip(context: Context, value: Boolean) {
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit { putBoolean(KEY_AUTO_SKIP, value) }
+        prefs(context).edit { putBoolean(KEY_AUTO_SKIP, value) }
     }
 
     fun getTheme(context: Context): String =
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).getString(KEY_THEME, "gelap") ?: "gelap"
+        prefs(context).getString(KEY_THEME, "gelap") ?: "gelap"
 
     fun setTheme(context: Context, theme: String) {
-        context.getSharedPreferences(NAME, Context.MODE_PRIVATE).edit { putString(KEY_THEME, theme) }
+        prefs(context).edit { putString(KEY_THEME, theme) }
+        _themeKey.value = theme
     }
 }

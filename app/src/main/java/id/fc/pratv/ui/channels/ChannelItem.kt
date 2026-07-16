@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,9 +51,9 @@ fun ChannelItem(
 ) {
     var focused by remember { mutableStateOf(false) }
     val r = rememberResponsive()
-    val logoSize = r.channelItem * 0.4f
+    val logoSize = r.channelItem * 0.78f
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = r.spacingSmall * 0.4f, horizontal = r.spacingSmall * 0.5f)
@@ -80,62 +85,62 @@ fun ChannelItem(
                 shape = RoundedCornerShape(6.dp)
             )
             .padding(horizontal = r.spacingSmall * 0.6f, vertical = r.spacingSmall * 0.5f),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Start
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(logoSize, logoSize)
+                .clip(CircleShape)
+                .background(Color(0xFF3c3c3c)),
+            contentAlignment = Alignment.Center
+        ) {
             if (channel.logoUrl != null) {
                 AsyncImage(
                     model = channel.logoUrl,
                     contentDescription = channel.name,
-                    modifier = Modifier
-                        .size(logoSize, logoSize)
-                        .clip(CircleShape),
+                    modifier = Modifier.size(logoSize, logoSize),
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Box(
-                    modifier = Modifier
-                        .size(logoSize, logoSize)
-                        .clip(CircleShape)
-                        .background(Color(0xFF3c3c3c)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = channel.name.firstOrNull()?.uppercase() ?: "?",
-                        color = VSCodeColors.textPrimary,
-                        fontSize = (logoSize.value * 0.5f).sp
-                    )
-                }
+                Icon(
+                    Icons.Filled.Tv,
+                    contentDescription = channel.name,
+                    tint = VSCodeColors.textPrimary,
+                    modifier = Modifier.size(logoSize * 0.55f)
+                )
             }
         }
-        Spacer(Modifier.width(r.spacingSmall))
+        Spacer(Modifier.height(r.spacingSmall * 0.4f))
         Text(
             text = channel.name,
             color = VSCodeColors.textPrimary,
-            fontSize = (13 * r.scale).sp,
-            maxLines = 1,
+            fontSize = (11 * r.scale).sp,
+            maxLines = 2,
+            textAlign = TextAlign.Center,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.fillMaxWidth()
         )
         if (channel.isLocal()) {
             Box(
                 modifier = Modifier
+                    .padding(top = 2.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(VSCodeColors.accent)
                     .padding(horizontal = 4.dp, vertical = 1.dp)
             ) {
-                Text(text = "Lokal", color = Color.White, fontSize = (9 * r.scale).sp)
+                Text(text = "Lokal", color = Color.White, fontSize = (8 * r.scale).sp)
             }
         }
         if (channel.name.contains("(V+)", ignoreCase = true)) {
             Box(
                 modifier = Modifier
+                    .padding(top = 2.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(Color(0xFFE94560))
                     .padding(horizontal = 4.dp, vertical = 1.dp)
             ) {
-                Text(text = "V+", color = Color.White, fontSize = (9 * r.scale).sp)
+                Text(text = "V+", color = Color.White, fontSize = (8 * r.scale).sp)
             }
         }
     }

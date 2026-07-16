@@ -304,6 +304,7 @@ private fun PlayerPreview(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
                             )
+                            setUseController(false)
                         }
                     },
                     update = { it.player = player },

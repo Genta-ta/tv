@@ -91,6 +91,7 @@ fun PlayerScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
+                        setUseController(false)
                         controllerShowTimeoutMs = 3000
                         setShowFastForwardButton(false)
                         setShowRewindButton(false)
